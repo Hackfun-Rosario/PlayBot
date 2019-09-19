@@ -14,7 +14,7 @@ def ck_fun():
       cks = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
 ck = Thread(target=ck_fun)
-ck.daemon=True
+ck.setDaemon(True)
 ck.start()
 
 
