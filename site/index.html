@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Playlist del bot</title>
+</head>
+<style>
+  .current {
+    border-top: 2px aqua solid;
+    border-bottom: 2px aqua solid;
+  }
+</style>
+<body>
+  <!-- EMBEDED media -->
+  <div id="video-placeholder"></div>
+
+  <!-- PLAYLIST -->
+  <div id="playlist">
+  </div>
+
+  <!-- YOUTUBE api --> 
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script type="text/javascript">
+    var player;
+    var chk; // checksum
+    var playlist = [];
+    var cp=0; // current pointer
+
+    function loadPlayer() {
+      player = new YT.Player('video-placeholder', {
+        width: 600,
+        height: 400,
+        videoId: playlist[cp],
+        playerVars: {
+          'origin': location.origin,
+          'autoplay': 1/*,
+          'controls': 0*/
+        },
+        events: {
+          onStateChange: onPlayerStateChange
+        }
+      });
+      
+      mark_current();
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.ENDED){
+        // pasamos al siguiente video
+        cp = (cp+1) % playlist.length;
+        player.loadVideoById(playlist[cp]);
+        mark_current();
+      }
+    }
+  </script>
+  <script>
+    var source;
+    function connect_sse() {
+      // create connection
+      source = new EventSource('/event_stream');
+
+      source.addEventListener('update', function(event){
+        fetch("/list")
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          playlist = text.split("\n").filter(function (e) { return e.length; });
+          refresh_pl(playlist);
+
+          if (!player) { loadPlayer(); }
+        });
+      });
+
+      // reconnect in case of error
+      source.onerror = function(e) {
+        if (source.readyState == source.CLOSED) {
+          setTimeout(connect_sse, 1500);
+        }
+      }
+    }
+
+    function refresh_pl(vids) {
+      let list = document.querySelector("#playlist");
+      let html = "";
+
+      vids.forEach(function (v, i) {
+        html += "<img src='https://img.youtube.com/vi/"+v+"/default.jpg' data-id='"+v+"' onclick='select_vid(event)'>"
+      });
+
+      list.innerHTML = html;
+      mark_current();
+    }
+
+    function select_vid(e) {
+      vid = e.target.dataset.id
+      cp = playlist.findIndex(e => { return e == vid });
+      player.loadVideoById(playlist[cp]);
+      mark_current();
+    }
+
+    function mark_current() {
+      vid = playlist[cp]
+      a = document.querySelector(".current")
+      if (a) a.classList.remove("current");
+
+      b = document.querySelector('[data-id="'+vid+'"]')
+      if (b) b.classList.add("current");
+    }
+
+    // init SSE connection
+    connect_sse()
+  </script>
+</body>
+</html>
