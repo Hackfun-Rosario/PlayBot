@@ -10,7 +10,7 @@ cks = None
 def ck_fun():
   global cks
   while True:
-    with open("play.list","r") as f:
+    with open("site/play.list","r") as f:
       cks = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
 ck = Thread(target=ck_fun)
