@@ -107,6 +107,10 @@
 
     // init SSE connection
     connect_sse()
+    document.body.addEventListener("unload", function () {
+      prompt("ready to go?");
+      source.close();
+    });
   </script>
 </body>
 </html>

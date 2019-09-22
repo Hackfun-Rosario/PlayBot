@@ -34,7 +34,7 @@ def stream():
 
 @app.route('/list')
 def playlist():
-  return send_from_directory('site','play.list')
+  return send_from_directory('site','play.list', mimetype="text/plain")
 
 @app.route('/')
 def main():
