@@ -1,3 +1,4 @@
 __pycache__
+site/play.list
 pid/*.pid
 *.pyc

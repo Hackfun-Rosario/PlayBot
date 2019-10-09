@@ -62,7 +62,7 @@
         fetch("/list")
         .then(function (r) { return r.text(); })
         .then(function (text) {
-          playlist = text.split("\n").filter(function (e) { return e.length; });
+          playlist = text.split("\n").filter(function (e) { return !!e.trim(); });
           refresh_pl(playlist);
 
           if (!player) { loadPlayer(); }
