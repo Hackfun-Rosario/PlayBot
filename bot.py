@@ -3,36 +3,37 @@
 from urllib.parse import urlparse
 from pathlib import Path
 from os import environ as env
-from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler
 from telegram.ext.dispatcher import run_async
 # multiprocessing block
 from multiprocessing.managers import BaseManager
 from time import time
 
-# create class
+# creamos la clase para interactuar con el broker
 class QMan(BaseManager):
   pass
 
-# register queue method
+# registramos el metodo para la queue
 QMan.register('get_queue')
 
-## run service
+## conectamos con el servicio e inicializamos la queue
 m = QMan(address=('localhost', 60606), authkey=b'cambiame la key')
 m.connect()
 q = m.get_queue()
 
-# filter
+# filtro de urls aceptadas
 allow = ["youtu.be", "youtube.com", "www.youtube.com"]
 
-## telegram updater and dispatcher
+## dispatcher y updater del bot de telegram
 updater = Updater(env["BOT_KEY"], use_context=True)
 dispatcher = updater.dispatcher
 
-## parse url and add file to playlist if allowed
-def check_url(url):
-  ## parse url
+## hacemos un chequeo de la url
+## y la agregamos a la base de datos
+def check_url(username, uid, args):
+  ## procesamos la url
+  url = args[0]
   u = urlparse(url)
-  vid = ""
   ## check if the url is what we want
   if u.netloc in allow:
     #get video id (vid)
@@ -40,19 +41,21 @@ def check_url(url):
       vid = u.query.split("v=")[1].split("&")[0]
     else:
       vid = u.path[1:]
-    # update file and notify the broker about the update
+    # actualizamos la playlist y notificamos al broker
     with open("site/play.list", "a") as f:
-      f.write(vid+"\n")
-      q.put(time()) # send update
+      f.write("%s|%s|%d\n" % (vid, username, uid))
+      q.put(time()) # send nudes(?)
 
-## message handler
+## handler de mensajes
+# esto es lo que recibe el mensaje y lo despacha a la funcion check_url
 @run_async
 def add_to_playlist(update, context):
-  check_url(update.message.text)
+  check_url(update.message.from_user.username, update.message.from_user.id, context.args)
 
-playlist_handler = MessageHandler(Filters.entity("url"), add_to_playlist)
+## registramos los comandos que necesitamos
+playlist_handler = CommandHandler('playlist', add_to_playlist)
 dispatcher.add_handler(playlist_handler)
 
-## listen and iterate
+## arrancamos y no paramos hasta california(?)
 updater.start_polling()
 updater.idle()

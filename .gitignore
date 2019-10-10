@@ -1,4 +1,4 @@
 __pycache__
-site/play.list
+play.list
 pid/*.pid
 *.pyc

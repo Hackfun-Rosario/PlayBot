@@ -29,7 +29,7 @@
       player = new YT.Player('video-placeholder', {
         width: 600,
         height: 400,
-        videoId: playlist[cp],
+        videoId: playlist[cp][VID],
         playerVars: {
           'origin': location.origin,
           'autoplay': 1/*,
@@ -47,24 +47,34 @@
       if (event.data == YT.PlayerState.ENDED){
         // pasamos al siguiente video
         cp = (cp+1) % playlist.length;
-        player.loadVideoById(playlist[cp]);
+        player.loadVideoById(playlist[cp][VID]);
         mark_current();
       }
     }
   </script>
   <script>
     var source;
+
+    const VID = 0;
+    const USER = 1;
+    const ID = 2;
+
     function connect_sse() {
-      // create connection
+      // conectamos con la fuente de eventos
       source = new EventSource('/event_stream');
 
       source.addEventListener('update', function(event){
         fetch("/list")
-        .then(function (r) { return r.text(); })
+        .then(function (r) { return r.text(); }) // convertimos la respuesta a texto
         .then(function (text) {
-          playlist = text.split("\n").filter(function (e) { return !!e.trim(); });
+          // procesamos el texto y lo convertimos en la playlist
+          // procesamos las filas
+          rows = text.split("\n").filter(function (e) { return !!e.trim(); });
+          // partimos cara fila por el espacio
+          playlist = rows.map(row => row.split("|"));
+          // actualizamos la playlist
           refresh_pl(playlist);
-
+          // inicializamos el reproductor si no lo hicimos
           if (!player) { loadPlayer(); }
         });
       });
@@ -81,8 +91,8 @@
       let list = document.querySelector("#playlist");
       let html = "";
 
-      vids.forEach(function (v, i) {
-        html += "<img src='https://img.youtube.com/vi/"+v+"/default.jpg' data-id='"+v+"' onclick='select_vid(event)'>"
+      vids.forEach(function (e, i) {
+        html += `<img src='https://img.youtube.com/vi/${e[VID]}/default.jpg' data-author='${e[ID]}' data-id='${e[VID]}' onclick='select_vid(event)'>`
       });
 
       list.innerHTML = html;
@@ -90,18 +100,18 @@
     }
 
     function select_vid(e) {
-      vid = e.target.dataset.id
-      cp = playlist.findIndex(e => { return e == vid });
-      player.loadVideoById(playlist[cp]);
+      vid = e.target.dataset.id;
+      cp = playlist.findIndex(e => { return e[0] == vid });
+      player.loadVideoById(playlist[cp][VID]);
       mark_current();
     }
 
     function mark_current() {
-      vid = playlist[cp]
-      a = document.querySelector(".current")
+      vid = playlist[cp][VID];
+      a = document.querySelector(".current");
       if (a) a.classList.remove("current");
 
-      b = document.querySelector('[data-id="'+vid+'"]')
+      b = document.querySelector('[data-id="'+vid+'"]');
       if (b) b.classList.add("current");
     }
 
